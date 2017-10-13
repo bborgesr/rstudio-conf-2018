@@ -27,7 +27,7 @@ hgroup h2 {
 }
 
 .slide > h1:before {
-  content: "Talk title";
+  content: "Interacting with Databases from R and Shiny";
   text-align: left;
   display: block;
   position: fixed;
