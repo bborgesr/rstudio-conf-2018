@@ -92,7 +92,7 @@ sqlInterpolate(ANSI(), sql, name = "H'); DROP TABLE--;")
 
 # DBI (practice) -- *SQL* injections edition!
 
-![bobby-tables](bobby-tables.png)
+![bobby-tables](assets/bobby-tables.png)
 
 # odbc (theory)
 
@@ -207,7 +207,7 @@ pool::poolClose(pool)
 
 # Shiny app
 
-<img src="app-snap.png" width="600px">
+<img src="assets/app-snap.png" width="600px">
 
 # Shiny app: skeleton
 
