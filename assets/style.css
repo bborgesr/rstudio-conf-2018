@@ -1,3 +1,10 @@
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro');
+@import url('https://fonts.googleapis.com/css?family=PT+Mono');
+
+body { 
+  font-family: 'Source Sans Pro';
+}
+
 .title-slide {
   background: #3e8ac7;
 }
@@ -14,12 +21,29 @@ hgroup h2 {
   color: #3e8ac7;
 }
 
-.titlepage, .section {
-  background: #e0e0e0 !important;
+.titlepage {
+  background-image: url(title.jpg); 
+  background-position: 0% 0%
+  background-repeat-x: no-repeat;
+  background-repeat-y: no-repeat;
+  background-attachment: fixed;
+  background-size: cover;
+  background-repeat: no-repeat;
+}
+
+.titlepage .title:before {
+  display: none;
 }
 
 .titlepage h1 {
   margin-top: 13% !important;
+}
+
+.title, .author, .date {
+  text-align: right;
+  color: #75aadb;
+  font-size: larger;
+  font-weight: bold;
 }
 
 .initial_prompt {
@@ -27,7 +51,7 @@ hgroup h2 {
 }
 
 .slide > h1:before {
-  content: "Drill-down data discovery with Shiny";
+  content: "Drilldown data discovery with Shiny";
   text-align: left;
   display: block;
   position: fixed;
@@ -41,7 +65,7 @@ hgroup h2 {
   line-height: 100%;
   color: white;
   text-shadow: -0.5px 0 black, 0 0.5px black, 0.5px 0 black, 0 -0.5px black;
-  background-color: #77abd9;
+  background-color: #75aadb; /* background-image: url("navbar.png"); */
   background-image: url("rstudio-white.png");
   background-repeat: no-repeat;
   background-position: 98% 50%;

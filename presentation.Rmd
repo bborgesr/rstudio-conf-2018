@@ -1,22 +1,20 @@
 ---
-title: "Interacting with Databases from R and Shiny"
+title: "Drilldown data discovery with Shiny"
 author: "Barbara Borges Ribeiro"
-date: "WSDS 2017"
+date: "03/02/2018"
 output: 
   slidy_presentation:
     font_adjustment: +1
     duration: 30
     transition: 0
     css: assets/style.css
-    footer: " // <span id = email_key>email</span>: <span id = email_value>barbara@rstudio.com</span> // <span id = repo_key>slides and code</span>: <span id = repo_value>github.com/bborgesr/wsds2017</span>"
+    footer: " // <span id = email_key>email</span>: <span id = email_value>barbara@rstudio.com</span> // <span id = repo_key>slides and code</span>: <span id = repo_value>github.com/bborgesr/rstudio-conf-2018</span>"
 ---
 
 # Show of hands! 
 
 <!-- ABSTRACT
-Being able to interact with an external relational database (like MySQL) is an increasingly important skill in data science. While this process may be a lot slower than dealing with in-memory data in R, it is infinitely more scalable. In particular, it's important to know how to establish a connection to a database, how to execute safe queries using SQL (goodbye SQL injections!) and how to close the connection. These skills allow you to read and write from a remote database. In this talk, I'll go over how to do these in R, using the DBI, dplyr and pool packages. I'll place special importance on these best practices when applied to the interactive context of a Shiny app. Interacting with databases through a Shiny app allows you to build an app that lets users modify data on a database, without knowing anything about SQL or R!
-
-This talk is meant for a wide audience. Those in the audience already familiar with databases, R and Shiny will be able to see best practices in action. Those in the audience who are generally unfamiliar with the topic will be able to see how much is currently possible and have references to all the best practices through my publicly available slides.
+Data science is often thought as _building up_ from data. However there are many cases where going the other away around, and _drilling down_ into the data, can also be extremely useful. Have you ever seen a plot where something seems off? Maybe it's a few egregious outliers or a quirk in the expected trend. Instead of going back to the drawing board immediately, returning to the spreadsheets of data and trying other visualizations and summaries, you can leverage the power of Shiny to allow you to interactively start from an aggregate visualization (or summary) and then drill down into the lower-level, finer-grained data. Whether it is by interactively creating new tabs, modal windows or other methods, _drilling down_ allows you to discover data that's been right under your nose, without having to leave your Shiny app. This capability also allows for more satisfying data presentation or data reporting Shiny apps, since its consumers can investigate the data to their heart's content. This talk will cover how you can create drilldown Shiny apps, using functions like `insertUI` and `removeUI`, `appendTab` and `removeTab`, and `showModal`.
 -->
 
 > - Never used R
@@ -123,7 +121,7 @@ DBI::sqlInterpolate(DBI::ANSI(), sql, name = "H'); DROP TABLE--;")
 
 _bobby-tables_ from **xkcd**:
 
-<img src="assets/bobby-tables.png" width="800px">
+<!-- <img src="assets/bobby-tables.png" width="800px"> -->
 <!-- ![bobby-tables from xkcd](assets/bobby-tables.png) -->
 
 # odbc (theory)
@@ -270,7 +268,7 @@ pool::poolClose(pool)
 
 # Shiny app
 
-<img src="assets/app-snap.png" width="800px">
+lol
 
 # Shiny app: skeleton
 
