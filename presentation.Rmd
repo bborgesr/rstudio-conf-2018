@@ -4,8 +4,8 @@ author: "Barbara Borges Ribeiro"
 date: "03/02/2018"
 output: 
   slidy_presentation:
-    font_adjustment: +1
-    duration: 30
+    font_adjustment: +5
+    duration: 17
     transition: 0
     css: assets/style.css
     footer: " // <span id = email_key>email</span>: <span id = email_value>barbara@rstudio.com</span> // <span id = repo_key>slides and code</span>: <span id = repo_value>github.com/bborgesr/rstudio-conf-2018</span>"
