@@ -1,0 +1,10 @@
+@import url('https://fonts.googleapis.com/css?family=Source+Sans+Pro');
+
+body { 
+  font-family: 'Source Sans Pro';
+}
+
+.main-header .logo {
+  font-weight: bold;
+  font-size: 24px;
+}
