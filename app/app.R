@@ -2,19 +2,8 @@ library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(glue)
-
-months <- list("All Year" = 99,
-  "January" = 1,  "February" = 2,  "March"     = 3,
-  "April"   = 4,  "May"      = 5,  "June"      = 6,
-  "July"    = 7,  "August"   = 8,  "September" = 9,
-  "October" = 10, "November" = 11, "December"  = 12)
-
-categories <- list(
-  income = c("salary", "other"), 
-  savings = c("savings", "investments"), 
-  expenses = c("rent", "utilities", "transportation", "groceries", 
-    "daily", "entertainment", "medical", "vacation", "personal")
-)
+library(treemapify)
+source("helpers.R")
 
 dat <- read_csv("budget.csv")
 
@@ -24,7 +13,7 @@ ui <- dashboardPage(skin = "purple",
     includeCSS("style.css"),
     selectInput("year", "Year: ", c(2015:2018), 2017, selectize = FALSE),
     sidebarMenu(
-      selectInput("month", "Month: ", names(months), selected = "All Year", selectize = FALSE),
+      selectInput("month", "Month: ", months, selected = "All Year", selectize = FALSE),
       actionLink("remove", "Remove detail tabs")
     )
   ),
@@ -35,14 +24,14 @@ ui <- dashboardPage(skin = "purple",
       valueBoxOutput("left")
     ),
     tabBox(id = "tabs", width = 12,
-      tabPanel(title = "Cash flow", value = "main",
+      tabPanel(title = "Cash flows", value = "main",
         fluidRow(
-          box(height = 650, width = 4,
-            "Click on a row to see the monthly flow", br(),
+          box(height = 650, width = 5,
+            # "Click on a row to see the monthly flow", br(),
             DT::dataTableOutput("main_table")
           ),
-          box(height = 450, width = 8,
-            "Click on a row to see the monthly flow", br(),
+          box(height = 450, width = 7,
+            # "Click on a row to see the monthly flow", br(),
             plotOutput("main_plot")
           )
         )
@@ -115,7 +104,6 @@ server <- function(input, output, session) {
       group_by(category, subcategory) %>% 
       mutate(total = sum(amount)) %>% 
       summarise(total = mean(total))
-    
     ggplot(sub_dat, aes(
       area = total, 
       fill = category,
@@ -123,8 +111,16 @@ server <- function(input, output, session) {
       subgroup = subcategory
     )) + 
       geom_treemap() + 
-      geom_treemap_text() +
-      scale_fill_manual(values = colors)
+      geom_treemap_text(color = "white", fontface = 2) +
+      scale_fill_manual(values = colors) +
+      theme(
+        legend.key.width = unit(2, "cm"),
+        legend.key.size = unit(1, "cm"),
+        legend.background = element_rect(fill = "gray90", size = 0.5, linetype = "dotted"),
+        legend.title = element_text(
+          face = "bold", 
+          inherit.blank = TRUE)
+      )
   })
 }
 
