@@ -1,8 +1,14 @@
 library(tidyverse)
+library(ggplot2)
+library(treemapify)
 
-months <- list("All Year", "January", "February", "March",
+years <- c(2015:2018)
+
+months <- c("All Year", "January", "February", "March",
   "April", "May", "June", "July", "August", "September",
   "October", "November", "December")
+
+days <- c(1:28)
 
 categories <- list("income", "savings", "expenses")
 
@@ -32,6 +38,11 @@ createCol <- function(x, salary, other, savings, investments, rent, utilities,
     else if (x == "vacation")       vacation
     else if (x == "personal")       personal
 }
+
+years_list      <- flat_subcategories %>% lapply(function(x) { years      })
+months_list     <- flat_subcategories %>% lapply(function(x) { months     })
+days_list       <- flat_subcategories %>% lapply(function(x) { days       })
+categories_list <- flat_subcategories %>% lapply(function(x) { categories })
 
 origins <- flat_subcategories %>% lapply(createCol,
   salary         = c("work"), 
@@ -84,11 +95,40 @@ descriptions <- flat_subcategories %>% lapply(createCol,
 names(origins) <- names(amounts) <- names(descriptions) <- flat_subcategories
 
 dat_metadata <- tibble(
-  #year,month,day,
+  years_list, months_list, days_list,
   amounts,
   origins,
-  #categories,
+  categories_list,
   flat_subcategories,
   descriptions)
+
+# View(dat_metadata)
+
+renderLandingPagePlot <- function(dat) {
+  colors <- c(
+    income = "violetred4", 
+    expenses = "darkorchid4", 
+    savings = "royalblue"
+  )
+  
+  ggplot(dat, aes(
+    area = total, 
+    fill = category,
+    label = subcategory,
+    subgroup = subcategory
+  )) + 
+    geom_treemap() + 
+    geom_treemap_text(color = "white", fontface = 2) +
+    scale_fill_manual(values = colors) +
+    theme(
+      legend.key.width = unit(2, "cm"),
+      legend.key.size = unit(1, "cm"),
+      legend.background = element_rect(fill = "gray90", size = 0.5, linetype = "dotted"),
+      legend.position = "bottom",
+      legend.title = element_text(
+        face = "bold", 
+        inherit.blank = TRUE)
+    )
+}
 
 dat <- read_csv("budget.csv")
