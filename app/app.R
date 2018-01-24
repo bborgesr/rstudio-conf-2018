@@ -40,17 +40,10 @@ ui <- dashboardPage(skin = "purple",
 )
 
 server <- function(input, output, session) { 
-  tab_list <- NULL
+  # tab_list <- NULL
   
-  timeColumn <- reactive({
-    if (input$month == "All Year") "year"
-    else "month"
-  })
-  
-  timeValue <- reactive({
-    if (input$month == "All Year") input$year
-    else input$month
-  })
+  timeColumn <- reactive({ if (input$month == "All Year") "year" else "month" })
+  timeValue <- reactive({ if (input$month == "All Year") input$year else input$month })
   
   subsettedData <- reactive({
     dat %>% filter(rowMeans(is.na(.)) < 1) %>%
@@ -95,12 +88,28 @@ server <- function(input, output, session) {
   })
   
   output$main_plot <- renderPlot({
-    sub_dat <- subsettedData() %>% 
+    category_dat <- subsettedData() %>%  
+      summarise(category_total = mean(amount))
+      # mutate(left = lapply(length(subsettedData()), function(i) {
+      #   if (.data$category[i] == "income") ...
+      #   else 
+      #   .data$category_total - .data$x
+      # }) %>% 
+      # filter(category == "income") 
+    
+    subcategory_dat <- subsettedData() %>% 
       group_by(category, subcategory) %>% 
       mutate(total = sum(amount)) %>% 
       summarise(total = mean(total))
     
-    renderLandingPagePlot(sub_dat)
+    vals <- map(categories, function(c) {
+      res <- filter(subcategory_dat, category == c)$total[1]
+      names(res) <- c
+      res
+    }) %>% unlist
+    val <- sum(vals["income"], - vals["savings"], - vals["expenses"])
+    
+    renderLandingPagePlot(subcategory_dat)
   })
 }
 
