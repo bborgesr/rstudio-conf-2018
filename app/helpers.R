@@ -104,6 +104,10 @@ dat_metadata <- tibble(
 
 # View(dat_metadata)
 
+# --------------------------------------------------------------------------------------#
+# ----------------------------------- UTILS --------------------------------------------#
+# --------------------------------------------------------------------------------------#
+
 renderLandingPagePlot <- function(dat) {
   colors <- c(
     income = "violetred4", 
@@ -131,4 +135,11 @@ renderLandingPagePlot <- function(dat) {
     )
 }
 
-dat <- read_csv("budget.csv")
+
+prettifyValueBox <- function(val, subtitle, color) {
+  val <- prettyNum(val, big.mark = ",")
+  valueBox(value = glue("{val} €"), subtitle = subtitle, color = color)
+}
+
+# shiny::runGitHub("rhandsontable", "jrowen", subdir="inst/examples/rhandsontable_dash")
+

@@ -11,39 +11,33 @@ output:
     footer: " // <span id = email_key>email</span>: <span id = email_value>barbara@rstudio.com</span> // <span id = repo_key>slides and code</span>: <span id = repo_value>github.com/bborgesr/rstudio-conf-2018</span>"
 ---
 
-# Show of hands! 
-
 <!-- ABSTRACT
 Data science is often thought as _building up_ from data. However there are many cases where going the other away around, and _drilling down_ into the data, can also be extremely useful. Have you ever seen a plot where something seems off? Maybe it's a few egregious outliers or a quirk in the expected trend. Instead of going back to the drawing board immediately, returning to the spreadsheets of data and trying other visualizations and summaries, you can leverage the power of Shiny to allow you to interactively start from an aggregate visualization (or summary) and then drill down into the lower-level, finer-grained data. Whether it is by interactively creating new tabs, modal windows or other methods, _drilling down_ allows you to discover data that's been right under your nose, without having to leave your Shiny app. This capability also allows for more satisfying data presentation or data reporting Shiny apps, since its consumers can investigate the data to their heart's content. This talk will cover how you can create drilldown Shiny apps, using functions like `insertUI` and `removeUI`, `appendTab` and `removeTab`, and `showModal`.
 -->
 
-> - Never used R
+```{r, echo = FALSE}
+library(ggplot2)
 
-> - Beginner R user
+thm <- theme_bw() + 
+  theme(
+    panel.background = element_rect(fill = "transparent", colour = NA), 
+    plot.background = element_rect(fill = "transparent", colour = NA),
+    legend.background = element_rect(fill = "transparent", colour = NA),
+    legend.key = element_rect(fill = "transparent", colour = NA),
+    legend.position = "bottom"
+  )
+theme_set(thm)
 
-> - Intermediate to advanced R user
-
-<hr/>
-
-> - Never used Shiny
-
-> - Beginner Shiny user
-
-> - Intermediate to advanced Shiny user
+```
 
 # Overview 
 
-**PART I**
+__*PART I**__:  What is _drilling down_ in the context of data? 
+- __Plan__: "show, don't tell"
+   - demo illustrative Personal Finance Shiny app
 
-- DB best practices in *R*
-    - `DBI` standardizes how to interact with a database
-    - `odbc` is a DBI backend for any database with an ODBC driver
-    - use `dplyr` syntax to talk to a database
-    - use `pool` (my package) to connect to a database from Shiny
-
-**PART II**
-
-- Shiny app demo: a CRUD app using `DBI`, `RSQLite`, `dplyr`, and `pool`
+__*PART II**__: Let's talk about abstractions
+- __Plan__: diagrams!
 - Connect to a *SQLite* database from Shiny
 - **C**reate, **R**ead, **U**pdate and **D**elete data from database
 - See updated information using `reactivePoll`
