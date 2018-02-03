@@ -90,9 +90,6 @@ server <- function(input, output, session) {
     DT::datatable(sub_data, rownames = FALSE)
   }, server = TRUE)
   
-  
-  ## MAIN TABLE CLICK -------------------------------------------------------------------
-  
   main_table_proxy <- dataTableProxy("main_table")
   
   showTransactionInfo <- function(id) {
@@ -125,36 +122,51 @@ server <- function(input, output, session) {
   
   ## MAIN PLOT --------------------------------------------------------------------------
   
+  treemapified_dat <- function(dat) {
+    treemapify(dat, 
+      area = "total", fill = "category", label = "subcategory", 
+      xlim = c(0, 1), ylim = c(0, 1)
+    )
+  }
+  
+  basePlot <- function(dat) {
+    ggplot(dat, aes(
+      area = total, fill = category, label = subcategory,
+      subgroup = subcategory
+    ))
+  }
+  
   output$main_plot <- renderPlot({
     category_dat <- subsettedData() %>%  
       summarise(category_total = mean(amount))
-    # mutate(left = lapply(length(subsettedData()), function(i) {
-    #   if (.data$category[i] == "income") ...
-    #   else 
-    #   .data$category_total - .data$x
-    # }) %>% 
-    # filter(category == "income") 
     
     subcategory_dat <- subsettedData() %>% 
       group_by(category, subcategory) %>% 
       mutate(total = sum(amount)) %>% 
       summarise(total = mean(total))
     
-    vals <- map(categories, function(c) {
-      res <- filter(subcategory_dat, category == c)$total[1]
-      names(res) <- c
-      res
-    }) %>% unlist
-    val <- sum(vals["income"], - vals["savings"], - vals["expenses"])
-    
-    renderLandingPagePlot(subcategory_dat)
+    renderLandingPagePlot(basePlot(subcategory_dat))
   })
   
-  
-  ## MAIN PLOT CLICK --------------------------------------------------------------------
-  
   observeEvent(input$main_plot_click, {
-    print(nearPoints(subsettedData(), input$main_plot_click, maxpoints = 1))
+    getClickedPoint <- function(treeDat) {
+      click <- input$main_plot_click
+      treeDat %>%
+        filter(xmin < click$x) %>% filter(xmax > click$x) %>%
+        filter(ymin < click$y) %>% filter(ymax > click$y)
+    }
+    
+    category_dat <- subsettedData() %>%  
+      summarise(category_total = mean(amount))
+    
+    subcategory_dat <- subsettedData() %>% 
+      group_by(category, subcategory) %>% 
+      mutate(total = sum(amount)) %>% 
+      summarise(total = mean(total))
+    
+    dat <- treemapified_dat(subcategory_dat)
+    
+    print(getClickedPoint(dat))
   }, ignoreInit = TRUE)
 }
 
