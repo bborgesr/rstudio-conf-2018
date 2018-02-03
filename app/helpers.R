@@ -108,6 +108,35 @@ dat_metadata <- tibble(
 # ----------------------------------- UTILS --------------------------------------------#
 # --------------------------------------------------------------------------------------#
 
+# output$tmap <- renderPlot({
+#   play <- tmapData()
+#   p <- ggplot(play, aes(area = wt, fill = mpg, label = name)) +
+#     geom_treemap() +
+#     geom_treemap_text(grow = FALSE, reflow = TRUE, color = "black")
+#   return(p)
+# })
+
+tmapData <- function() {
+  play <- mt %>%
+    mutate(name = row.names(mtcars)) %>%
+    dplyr::filter(cyl == 4)
+  return(play)
+}
+
+tmapCoords <- function() {
+  treemapify(tmapData(), area = "wt", fill = "mpg", label = "name", xlim = c(0, 1),
+    ylim = c(0, 1))
+}
+
+getClickedPoint <- function(treeDat){
+  click <- input$main_plot_click
+  tmapCoords() %>%
+    filter(xmin < input$tClick$x) %>%
+    filter(xmax > input$tClick$x) %>%
+    filter(ymin < input$tClick$y) %>%
+    filter(ymax > input$tClick$y)
+}
+
 renderLandingPagePlot <- function(dat) {
   colors <- c(
     income = "violetred4", 
@@ -135,11 +164,9 @@ renderLandingPagePlot <- function(dat) {
     )
 }
 
-
 prettifyValueBox <- function(val, subtitle, color) {
   val <- prettyNum(val, big.mark = ",")
   valueBox(value = glue("{val} €"), subtitle = subtitle, color = color)
 }
 
-# shiny::runGitHub("rhandsontable", "jrowen", subdir="inst/examples/rhandsontable_dash")
 

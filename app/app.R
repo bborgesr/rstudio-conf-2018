@@ -4,6 +4,7 @@ library(tidyverse)
 library(glue)
 source("helpers.R")
 
+## move this to Google Sheets
 dat <- read_csv("www/budget.csv")
 
 sidebar <- dashboardSidebar(
@@ -25,12 +26,12 @@ body <- dashboardBody(
     tabPanel(title = "Cash flows", value = "main",
       fluidRow(
         box(height = 650, width = 5, DT::dataTableOutput("main_table")),
-        box(height = 450, width = 7, plotOutput("main_plot"))
+        box(height = 450, width = 7, plotOutput("main_plot", click = "main_plot_click"))
       )
     )
   )
 )
-  
+
 ui <- dashboardPage(skin = "purple",
   dashboardHeader(title = "Personal Budget"),
   sidebar,
@@ -38,6 +39,8 @@ ui <- dashboardPage(skin = "purple",
 )
 
 server <- function(input, output, session) { 
+  ## UTILITIES --------------------------------------------------------------------------
+  
   # tab_list <- NULL
   
   timeColumn <- reactive({ if (input$month == "All Year") "year" else "month" })
@@ -49,11 +52,14 @@ server <- function(input, output, session) {
       filter(year == input$year) %>% 
       filter(timeValue() == !!as.name(timeColumn()))
   })
-    
+  
   subsetData <- function(categoryValues) {
     subsettedData() %>% filter(category %in% categoryValues) %>% 
       mutate(total = sum(amount))
   }
+  
+  
+  ## VALUE BOXES ------------------------------------------------------------------------
   
   output$incoming <- renderValueBox({
     sub_dat <- subsetData("income")
@@ -76,20 +82,58 @@ server <- function(input, output, session) {
     prettifyValueBox(val, "$$$ left!", "maroon")
   })
   
+  
+  ## MAIN TABLE -------------------------------------------------------------------------
+  
   output$main_table <- DT::renderDataTable({
     sub_data <- subsettedData() %>% select(year, month, day, amount, category)
     DT::datatable(sub_data, rownames = FALSE)
+  }, server = TRUE)
+  
+  
+  ## MAIN TABLE CLICK -------------------------------------------------------------------
+  
+  main_table_proxy <- dataTableProxy("main_table")
+  
+  showTransactionInfo <- function(id) {
+    row <- subsettedData()[id, ]
+    all <- wellPanel(
+      p(tags$b("Date: "), glue("{row$day}, {row$month}, {row$year}")),
+      p(tags$b("Amount: "), row$amount),
+      p(tags$b("Category: "), row$category),
+      p(tags$b("Subcategory: "), row$subcategory),
+      if (!is.na(row$origin)) p(tags$b("Origin: "), row$origin),
+      if (!is.na(row$description)) p(tags$b("Description: "), row$description)
+    )
+    return(list(id = row$id, all = all))
+  }
+  
+  observeEvent(input$main_table_rows_selected, {
+    info <- showTransactionInfo(input$main_table_rows_selected)
+    showModal(modalDialog(
+      title = div(tags$b(glue("Transaction #{info$id}")), style = "color: #605ea6;"),
+      info$all,
+      footer = actionButton("close_modal",label = "Close")
+    ))
+  }, ignoreInit = TRUE)
+  
+  observeEvent(input$close_modal, {
+    selectRows(main_table_proxy, NULL)
+    removeModal()
   })
+  
+  
+  ## MAIN PLOT --------------------------------------------------------------------------
   
   output$main_plot <- renderPlot({
     category_dat <- subsettedData() %>%  
       summarise(category_total = mean(amount))
-      # mutate(left = lapply(length(subsettedData()), function(i) {
-      #   if (.data$category[i] == "income") ...
-      #   else 
-      #   .data$category_total - .data$x
-      # }) %>% 
-      # filter(category == "income") 
+    # mutate(left = lapply(length(subsettedData()), function(i) {
+    #   if (.data$category[i] == "income") ...
+    #   else 
+    #   .data$category_total - .data$x
+    # }) %>% 
+    # filter(category == "income") 
     
     subcategory_dat <- subsettedData() %>% 
       group_by(category, subcategory) %>% 
@@ -105,6 +149,13 @@ server <- function(input, output, session) {
     
     renderLandingPagePlot(subcategory_dat)
   })
+  
+  
+  ## MAIN PLOT CLICK --------------------------------------------------------------------
+  
+  observeEvent(input$main_plot_click, {
+    print(nearPoints(subsettedData(), input$main_plot_click, maxpoints = 1))
+  }, ignoreInit = TRUE)
 }
 
 shinyApp(ui, server)
