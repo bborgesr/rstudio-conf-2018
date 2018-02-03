@@ -108,11 +108,25 @@ dat_metadata <- tibble(
 # ----------------------------------- UTILS --------------------------------------------#
 # --------------------------------------------------------------------------------------#
 
+treemapified_dat <- function(dat) {
+  treemapify(dat, 
+    area = "total", fill = "category", label = "subcategory", 
+    xlim = c(0, 1), ylim = c(0, 1)
+  )
+}
+
+basePlot <- function(dat) {
+  ggplot(dat, aes(
+    area = total, fill = category, label = subcategory,
+    subgroup = subcategory
+  ))
+}
+
 renderLandingPagePlot <- function(basePlot) {
   colors <- c(
-    income = "violetred4", 
-    expenses = "darkorchid4", 
-    savings = "royalblue"
+    income = "#975c72", 
+    expenses = "#724678", 
+    savings = "#545294"
   )
   
   basePlot + 
@@ -130,9 +144,13 @@ renderLandingPagePlot <- function(basePlot) {
     )
 }
 
+getClickedPoint <- function(treeDat, click) {
+  treeDat %>%
+    filter(xmin < click$x) %>% filter(xmax > click$x) %>%
+    filter(ymin < click$y) %>% filter(ymax > click$y)
+}
+
 prettifyValueBox <- function(val, subtitle, color) {
   val <- prettyNum(val, big.mark = ",")
   valueBox(value = glue("{val} €"), subtitle = subtitle, color = color)
 }
-
-

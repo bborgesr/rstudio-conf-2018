@@ -2,9 +2,32 @@
 
 body { 
   font-family: "Source Sans Pro";
+  font-size: 18px;
 }
 
 .main-header .logo {
   font-weight: bold;
   font-size: 24px;
+}
+
+div.special div.bg-maroon {
+  background-color: #975c72 !important;
+}
+
+div.special div.bg-blue {
+  background-color: #724678 !important;
+}
+
+div.special div.bg-navy {
+  background-color: #36325a !important;
+}
+
+.color_btn {
+  font-size: 18px;
+  background-color: #545294 !important;
+  color: white !important;
+}
+
+.content-wrapper {
+  min-height: 825px !important;
 }

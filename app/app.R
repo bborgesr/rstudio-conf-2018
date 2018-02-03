@@ -1,47 +1,100 @@
+## DEPENDENCIES -------------------------------------------------------------------------
 library(shiny)
 library(shinydashboard)
 library(tidyverse)
 library(glue)
+library(googlesheets)
+library(colourpicker)
 source("helpers.R")
 
-## move this to Google Sheets
-dat <- read_csv("www/budget.csv")
+## DATA IMPORT (googlesheets) -----------------------------------------------------------
+dat <- gs_title("rstudio_conf_2018_BUDGET") %>% gs_read()
 
+## UI -----------------------------------------------------------------------------------
+## |__sidebar ---------------------------------------------------------------------------
 sidebar <- dashboardSidebar(
   includeCSS("www/style.css"),
-  selectInput("year", "Year: ", years, 2017, selectize = FALSE),
-  sidebarMenu(
+  sidebarMenu(id = "sidebar_menu",
+    selectInput("year", "Year: ", years, 2017, selectize = FALSE),
     selectInput("month", "Month: ", months, selected = "All Year", selectize = FALSE),
-    actionLink("remove", "Remove detail tabs")
+    hr(), 
+    menuItem("Dashboard", tabName = "dashboard", icon = icon("dashboard")),
+    menuItem("Studio", tabName = "studio", icon = icon("th")),
+    hr(), 
+    uiOutput("menuItem_specific_ui")
   )
 )
 
-body <- dashboardBody(      
+## |__body ------------------------------------------------------------------------------
+body <- dashboardBody(
+  ## |_____persistent info --------------------------------------------------------------
   fluidRow(
-    valueBoxOutput("incoming"),
-    valueBoxOutput("outgoing"),
-    valueBoxOutput("left")
+    column(8, helpText("Repo: github.com/bborgesr/rstudio-conf-2018")),
+    column(4, helpText("Data viewable at: goo.gl/aFLbFz"))
   ),
-  tabBox(id = "tabs", width = 12,
-    tabPanel(title = "Cash flows", value = "main",
+  fluidRow(
+    div(valueBoxOutput("incoming"), class = "special"),
+    div(valueBoxOutput("outgoing"), class = "special"),
+    div(valueBoxOutput("left"), class = "special")
+  ),
+  tabItems(
+    ## |_____dashboard tab --------------------------------------------------------------
+    tabItem("dashboard",
+      tabBox(id = "tabs", width = 12,
+        tabPanel(title = "Cash flows", value = "main",
+          fluidRow(
+            box(width = 6, DT::dataTableOutput("main_table")),
+            box(width = 6, plotOutput("main_plot", click = "main_plot_click"))
+          )
+        )
+      )
+    ),
+    ## |_____studio tab -----------------------------------------------------------------
+    tabItem("studio",
+      helpText("A space to dynamically create value boxes corresponding",
+        "to an aggregate summary of the data by subcategory for the selected", 
+        "period of time."),
       fluidRow(
-        box(height = 650, width = 5, DT::dataTableOutput("main_table")),
-        box(height = 450, width = 7, plotOutput("main_plot", click = "main_plot_click"))
+        column(3, 
+          selectInput("studio_subcategory", "Choose 0+ subcategories", 
+            unique(dat$subcategory), multiple = TRUE)
+        ),
+        column(2, 
+          numericInput("studio_amount", "Choose an amount", 0)
+        ),
+        column(2, 
+          radioButtons("studio_amount_direction", "Amount qualifier", c("Over", "Under"))
+        ),
+        column(3, 
+          selectInput("studio_function", "Choose a aggregate function", 
+            c("sum", "mean", "count", "min", "max"))
+        ),
+        column(2, 
+          colourInput("studio_box_color", "Choose a color", palette = "limited",
+            allowedCols = c(
+              "red", "yellow", "aqua", "blue", "light-blue", "green", "navy", "teal", 
+              "olive", "lime", "orange", "fuchsia", "purple", "maroon", "black"
+            ), returnName = TRUE)
+        )
+      ),
+      fluidRow(
+        tags$div(id = "placeholder")
       )
     )
   )
 )
 
+## |__page ------------------------------------------------------------------
 ui <- dashboardPage(skin = "purple",
-  dashboardHeader(title = "Personal Budget"),
-  sidebar,
-  body
+  dashboardHeader(title = "Personal Budget"), sidebar, body
 )
 
+
+## SERVER -------------------------------------------------------------------------------
 server <- function(input, output, session) { 
-  ## UTILITIES --------------------------------------------------------------------------
   
-  # tab_list <- NULL
+  ## UTILITIES --------------------------------------------------------------------------
+  tab_list <- NULL
   
   timeColumn <- reactive({ if (input$month == "All Year") "year" else "month" })
   timeValue <- reactive({ if (input$month == "All Year") input$year else input$month })
@@ -58,12 +111,22 @@ server <- function(input, output, session) {
       mutate(total = sum(amount))
   }
   
+  output$menuItem_specific_ui <- renderUI({
+    if (input$sidebar_menu == "dashboard") {
+      actionLink("remove_tabs", "Remove detail tabs")
+    } else if (input$sidebar_menu == "studio") {
+      tagList(
+        actionButton("create_box", "Create new box", class = "color_btn"),
+        actionLink("remove_boxes", "Delete dynamic boxes")
+      )
+    }
+  })
+  
   
   ## VALUE BOXES ------------------------------------------------------------------------
-  
   output$incoming <- renderValueBox({
     sub_dat <- subsetData("income")
-    prettifyValueBox(sub_dat$total[1], "Incoming", "navy")
+    prettifyValueBox(sub_dat$total[1], "Incoming", "maroon")
   })
   
   output$outgoing <- renderValueBox({
@@ -79,15 +142,14 @@ server <- function(input, output, session) {
       res
     }) %>% unlist
     val <- sum(vals["income"], - vals["savings"], - vals["expenses"], na.rm = TRUE)
-    prettifyValueBox(val, "$$$ left!", "maroon")
+    prettifyValueBox(val, "$$$ left!", "navy")
   })
   
   
   ## MAIN TABLE -------------------------------------------------------------------------
-  
   output$main_table <- DT::renderDataTable({
     sub_data <- subsettedData() %>% select(year, month, day, amount, category)
-    DT::datatable(sub_data, rownames = FALSE)
+    DT::datatable(sub_data, rownames = FALSE, options = list(dom = "tp"))
   }, server = TRUE)
   
   main_table_proxy <- dataTableProxy("main_table")
@@ -110,7 +172,7 @@ server <- function(input, output, session) {
     showModal(modalDialog(
       title = div(tags$b(glue("Transaction #{info$id}")), style = "color: #605ea6;"),
       info$all,
-      footer = actionButton("close_modal",label = "Close")
+      footer = actionButton("close_modal", label = "Close", class = "color_btn")
     ))
   }, ignoreInit = TRUE)
   
@@ -121,52 +183,105 @@ server <- function(input, output, session) {
   
   
   ## MAIN PLOT --------------------------------------------------------------------------
-  
-  treemapified_dat <- function(dat) {
-    treemapify(dat, 
-      area = "total", fill = "category", label = "subcategory", 
-      xlim = c(0, 1), ylim = c(0, 1)
-    )
-  }
-  
-  basePlot <- function(dat) {
-    ggplot(dat, aes(
-      area = total, fill = category, label = subcategory,
-      subgroup = subcategory
-    ))
-  }
-  
-  output$main_plot <- renderPlot({
-    category_dat <- subsettedData() %>%  
-      summarise(category_total = mean(amount))
-    
-    subcategory_dat <- subsettedData() %>% 
+  subcategory_dat <- reactive({
+    subsettedData() %>% 
       group_by(category, subcategory) %>% 
       mutate(total = sum(amount)) %>% 
       summarise(total = mean(total))
-    
-    renderLandingPagePlot(basePlot(subcategory_dat))
+  })
+  
+  output$main_plot <- renderPlot({
+    base_ggplot <- subcategory_dat() %>% basePlot
+    renderLandingPagePlot(base_ggplot)
   })
   
   observeEvent(input$main_plot_click, {
-    getClickedPoint <- function(treeDat) {
-      click <- input$main_plot_click
-      treeDat %>%
-        filter(xmin < click$x) %>% filter(xmax > click$x) %>%
-        filter(ymin < click$y) %>% filter(ymax > click$y)
+    tree_dat <- subcategory_dat() %>% treemapified_dat
+    clicked_square <- getClickedPoint(tree_dat, input$main_plot_click)
+    clicked_label <- as.character(clicked_square[1, "label"])
+    outputID <- glue("dt-{clicked_label}")
+    btnID <- glue("hide-{outputID}")
+    
+    if (!(clicked_label %in% tab_list)) {
+      appendTab(inputId = "tabs",
+        tabPanel(clicked_label,
+          actionButton(btnID, "Hide this tab", class = "color_btn pull-right"),
+          DT::dataTableOutput(outputID)
+        )
+      )
+      tab_list <<- c(tab_list, clicked_label)
     }
     
-    category_dat <- subsettedData() %>%  
-      summarise(category_total = mean(amount))
+    output[[outputID]] <- DT::renderDataTable({
+      details <- subsettedData() %>% filter(subcategory == clicked_label)
+      DT::datatable(details, rownames = FALSE, options = list(dom = "tp"))
+    })
     
-    subcategory_dat <- subsettedData() %>% 
-      group_by(category, subcategory) %>% 
-      mutate(total = sum(amount)) %>% 
-      summarise(total = mean(total))
+    showTab(inputId = "tabs", target = clicked_label, select = TRUE)
     
-    dat <- treemapified_dat(subcategory_dat)
+    observeEvent(input[[btnID]],{
+      hideTab("tabs", clicked_label)
+    }, ignoreInit = TRUE)
     
-    print(getClickedPoint(dat))
+  }, ignoreInit = TRUE)
+  
+  observeEvent(input$remove_tabs,{
+    tab_list %>% walk(~removeTab("tabs", .x))
+    tab_list <<- NULL
+  }, ignoreInit = TRUE)
+  
+  ## STUDIO TAB -------------------------------------------------------------------------
+  # actionButton("create_box", "Create new box", class = "create_box"),
+  # actionLink("remove_boxes", "Delete dynamic boxes")
+  
+  studioTabData <- reactive({
+    subsettedData() %>% 
+      filter(subcategory %in% input$studio_subcategory) %>% 
+      filter(studioTabAmountDirection()(amount, input$studio_amount)) %>% 
+      mutate(total = studioTabFunction()(amount))
+  })
+  
+  studioTabAmountDirection <- reactive({
+    if (input$studio_amount_direction == "Over") `>`
+    else if (input$studio_amount_direction == "Under") `<`
+  })
+  
+  studioTabFunction <- reactive({
+    if (input$studio_function == "sum") sum
+    else if (input$studio_function == "mean") mean
+    else if (input$studio_function == "count") count
+    else if (input$studio_function == "min") min
+    else if (input$studio_function == "max") max
+  })
+  
+  observeEvent(input$create_box, {
+    divID <- gsub("\\.", "", format(Sys.time(), "%H%M%OS3"))
+    divClass <- glue("user-dynamic-box")
+    btnID <- glue("remove-{divID}")
+    
+    sub_dat <- studioTabData()
+    val <- prettyNum(sub_dat$total[1], big.mark = ",")
+    
+    insertUI(
+      selector = "#placeholder",
+      ui = div(id = divID, class = divClass,
+        actionButton(btnID, "X", class = "color_btn pull-right"),
+        valueBox(
+          value = glue("{val} €"), 
+          subtitle = glue("{input$studio_function} over {input$studio_subcategory}"), 
+          color = input$studio_box_color
+        )
+      )
+    )
+    
+    observeEvent(input[[btnID]], {
+      removeUI(glue("#{divID}"))
+    }, ignoreInit = TRUE, once = TRUE)
+    
+  }, ignoreInit = TRUE)
+  
+  observeEvent(input$remove_boxes,{
+    removeUI(".user-dynamic-box", multiple = TRUE)
   }, ignoreInit = TRUE)
 }
 
