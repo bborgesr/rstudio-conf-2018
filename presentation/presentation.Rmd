@@ -5,15 +5,11 @@ date: "03/02/2018"
 output: 
   slidy_presentation:
     font_adjustment: +5
-    duration: 17
+    duration: 15
     transition: 0
-    css: assets/style.css
+    css: ../assets/style.css
     footer: " // <span id = email_key>email</span>: <span id = email_value>barbara@rstudio.com</span> // <span id = repo_key>slides and code</span>: <span id = repo_value>github.com/bborgesr/rstudio-conf-2018</span>"
 ---
-
-<!-- ABSTRACT
-Data science is often thought as _building up_ from data. However there are many cases where going the other away around, and _drilling down_ into the data, can also be extremely useful. Have you ever seen a plot where something seems off? Maybe it's a few egregious outliers or a quirk in the expected trend. Instead of going back to the drawing board immediately, returning to the spreadsheets of data and trying other visualizations and summaries, you can leverage the power of Shiny to allow you to interactively start from an aggregate visualization (or summary) and then drill down into the lower-level, finer-grained data. Whether it is by interactively creating new tabs, modal windows or other methods, _drilling down_ allows you to discover data that's been right under your nose, without having to leave your Shiny app. This capability also allows for more satisfying data presentation or data reporting Shiny apps, since its consumers can investigate the data to their heart's content. This talk will cover how you can create drilldown Shiny apps, using functions like `insertUI` and `removeUI`, `appendTab` and `removeTab`, and `showModal`.
--->
 
 ```{r, echo = FALSE}
 library(ggplot2)
@@ -32,312 +28,38 @@ theme_set(thm)
 
 # Overview 
 
-__*PART I**__:  What is _drilling down_ in the context of data? 
-- __Plan__: "show, don't tell"
-   - demo illustrative Personal Finance Shiny app
+<!-- ABSTRACT
+Data science is often thought as _building up_ from data. However there are many cases where going the other away around, and _drilling down_ into the data, can also be extremely useful. Have you ever seen a plot where something seems off? Maybe it's a few egregious outliers or a quirk in the expected trend. Instead of going back to the drawing board immediately, returning to the spreadsheets of data and trying other visualizations and summaries, you can leverage the power of Shiny to allow you to interactively start from an aggregate visualization (or summary) and then drill down into the lower-level, finer-grained data. Whether it is by interactively creating new tabs, modal windows or other methods, _drilling down_ allows you to discover data that's been right under your nose, without having to leave your Shiny app. This capability also allows for more satisfying data presentation or data reporting Shiny apps, since its consumers can investigate the data to their heart's content. This talk will cover how you can create drilldown Shiny apps, using functions like `insertUI` and `removeUI`, `appendTab` and `removeTab`, and `showModal`.
+-->
 
-__*PART II**__: Let's talk about abstractions
-- __Plan__: diagrams!
-- Connect to a *SQLite* database from Shiny
-- **C**reate, **R**ead, **U**pdate and **D**elete data from database
-- See updated information using `reactivePoll`
+**PART I**
 
-# Databases, and its many flavors
+In the context of data, what is:
 
-- **Relational databases** <-- *We'll focus on these*
+  - drilling down? drilling through? drilling up?
+  - _Plan_: "show, don't tell": demo illustrative Shiny app
 
-- **NoSQL/object oriented databases**
+**PART II**
 
-# Databases, and its many flavors
+Let's talk about abstractions
 
-**Relational**-ish **databases**
+  - _Plan_: diagrams!
 
-- RDBMSs (relational database management systems) store data in columns and rows, which in turn make up tables 
+# Demo time
 
-- A table in RDBMS is like a spreadsheet. 
+- All of our "drillings" (down/through/up) will be demoed in this app
+- All of our "drillings" are also implemented through dynamic UI
 
-- Use *SQL*
+**Relevant functions**:
 
-- MySQL, PostgreSQL, SQLite
+  - `appendTab` and `removeTab`
+  - `showModal` and `removeModal`
+  - `insertUI` and `removeUI`.
 
-- Apache Hive and Cloudera Impala for distributed systems (relational-like) 
+# Abstractions
 
-- *R* packages: `DBI`, `odbc`, `dplyr` (and `dbplyr`), `pool`
-    
-# Databases, and its many flavors
+![](../assets/drill-down-annotated.svg)
 
-**NoSQL/object oriented databases**
+# Thanks!
 
-- These do not follow the table/row/column approach of RDBMS 
-
-- Good for working with large amounts of data that do not require structure 
-
-- Less concerned with storing them in ordered tables than they are with simply making them available for fast access
-
-- MongoDB, CouchDB, HBase, Cassandra 
-
-# DBI (theory)
-
-- `DBI` defines the generic **D**ata**B**ase **I**nterface for R. The idea is to standardize how to interact with a database from *R* (connect, disconnect, read, write and mutate data safely from *R*)
-
-- The connection to individual DBMS is provided by other packages that import `DBI` (`DBI`-compliant backends) and implement the methods for the generics defined in `DBI`
-
-- Current goal: ensure maximum portability and exchangeability and reduce the effort for implementing a new DBI backend (through the `DBItest` package and the [DBI specification](https://cran.r-project.org/web/packages/DBI/vignettes/spec.html))
-
-# DBI (practice)
-
-```{r, eval=FALSE}
-con <- DBI::dbConnect(RSQLite::SQLite(), ":memory:")
-
-DBI::dbWriteTable(con, "iris", iris)
-
-DBI::dbGetQuery(con, "SELECT count() FROM iris")
-#>   count()
-#> 1     150
-
-DBI::dbDisconnect(con)
-```
-
-# DBI (practice) -- *SQL* injections edition!
-
-```{r, eval=FALSE}
-sql <- "SELECT * FROM X WHERE name = ?name"
-
-DBI::sqlInterpolate(DBI::ANSI(), sql, name = "Hadley")
-#> <SQL> SELECT * FROM X WHERE name = 'Hadley'
-
-# This is safe because the single quote has been double escaped
-DBI::sqlInterpolate(DBI::ANSI(), sql, name = "H'); DROP TABLE--;")
-#> <SQL> SELECT * FROM X WHERE name = 'H''); DROP TABLE--;'
-```
-
-# DBI (practice) -- *SQL* injections edition!
-
-_bobby-tables_ from **xkcd**:
-
-<!-- <img src="assets/bobby-tables.png" width="800px"> -->
-<!-- ![bobby-tables from xkcd](assets/bobby-tables.png) -->
-
-# odbc (theory)
-
-- ODBC (Open Database Connectivity) is a specification for a database API. This API is independent of any one DBMS, operating system or programming language. The functions in the ODBC API are implemented by developers of DBMS-specific drivers. ([source](https://docs.microsoft.com/en-us/sql/odbc/reference/what-is-odbc))
-
-- The `odbc` package provides a DBI compliant backend for any database with an ODBC driver (although anyone can write a driver, most of these tend to be paid, enterprise products). 
-
-- This allows for an efficient, easy to setup connection to any database with ODBC drivers available (RStudio Server Pro will soon  bundle several of these drivers including Microsoft SQL Server, Oracle, MySQL, PostgreSQL, SQLite, Cloudera Impala, Apache Hive and others).
-
-- Recognized in the brand-new RStudio IDE "Connections" pane (*demo!*)
-
-# _Aside_: what is a database driver?
-
-> In a computer system, an adaptor program is required for making a connection to another system of different type. Similar to connecting a printer to a computer by using a printer driver, a DBMS (database management system) needs a database driver that enables a database connection in other systems. ([source](http://www.jdatalab.com/information_system/2017/02/16/database-driver.html))
-
-- `odbc` acts as "middleman" driver
-
-- Why is this useful?
-
-# odbc (practice)
-
-```{r, eval=FALSE}
-con <-  DBI::dbConnect(odbc::odbc(), 
-  Driver = "{postgresql}",
-  Server = "postgresdemo.cfd8mtk93q6a.us-west-2.rds.amazonaws.com",
-  Port = 5432, 
-  Database = "postgresdemo",
-  UID = "guest",
-  PWD = "guest"
-)
-
-DBI::dbGetQuery(con, "SELECT * FROM city LIMIT 2;")
-#>   id     name countrycode district population
-#> 1  1    Kabul         AFG    Kabol    1780000
-#> 2  2 Qandahar         AFG Qandahar     237500
-
-DBI::dbDisconnect(con)
-```
-
-# dplyr (theory)
-
-- **Idea**: use `dplyr` syntax to talk to databases (no *SQL* involved for the end user).
-
-- `dplyr` (and the brand-new `dbplyr`) wrap and extend a lot of `DBI` methods, so that you can use `dplyr` + *R* directly to interact with your database (instead of `DBI` + *SQL*, which is what `dplyr` does for you)
-
-- With the recent revamp, you can a LOT with `dplyr` (reading and transforming data, writing tables, querying the database)
-
-- You can combine `DBI` and `dplyr` as much as you want!
-
-- **Bottom line**: Especially if you're already familiar with the `dplyr` verbs (mainly, `filter()`, `select()`, `mutate()`, `group_by()`, and `summarise()`), using `dplyr` to interact with databases is a great idea.
-
-# dplyr (practice)
-
-```{r, eval=FALSE}
-library(dplyr)
-
-con <- DBI::dbConnect(RMySQL::MySQL(),
-  dbname = "shinydemo",
-  host = "shiny-demo.csa7qlmguqrf.us-east-1.rds.amazonaws.com",
-  username = "guest", 
-  password = "guest"
-)
-
-con %>% tbl("City") %>% head(2)
-#> # Source:   lazy query [?? x 5]
-#> # Database: mysql 5.5.5-10.0.17-MariaDB
-#> #   [guest@shiny-demo (...) amazonaws.com:/shinydemo]
-#>      ID     Name CountryCode District Population
-#>   <dbl>    <chr>       <chr>    <chr>      <dbl>
-#> 1     1    Kabul         AFG    Kabol    1780000
-#> 2     2 Qandahar         AFG Qandahar     237500
-
-DBI::dbDisconnect(con)
-```
-
-# pool (theory)
-
-**Problem**: how to interact with a database from Shiny? 
-
-- Per session, there is only a single R process and potentially multiple users
-
-- Also, establishing connections takes time and they can go down at any time
-
-- So, you don’t want a fresh connection every for every user action (because that’s slow), and you don’t want one connection per app (because that’s unreliable)...
-
-<hr/>
-
-- The `pool` package allows you to manage a shared pool of connections for your app, giving you both speed (good performance) and reliability (connection management).
-
-# pool (theory)
-
-- `pool` is mainly important when in a Shiny app (or another interactive app with an R backend), but it can be used in other situations with no problem.
-
-- `pool` integrates seamlessly with both `DBI` and `dplyr` (the only noticeable differences are in the create/connect and close/disconnect functions).
-
-- Is on CRAN, as of a month ago! (maintenance release coming soon)
-
-# pool (practice)
-
-```{r, eval=FALSE}
-library(dplyr)
-
-pool <- pool::dbPool(RMySQL::MySQL(),
-  dbname = "shinydemo",
-  host = "shiny-demo.csa7qlmguqrf.us-east-1.rds.amazonaws.com",
-  username = "guest", 
-  password = "guest"
-)
-
-pool %>% tbl("City") %>% head(2)
-#> # Source:   lazy query [?? x 5]
-#> # Database: mysql 5.5.5-10.0.17-MariaDB
-#> #   [guest@shiny-demo (...) amazonaws.com:/shinydemo]
-#>      ID     Name CountryCode District Population
-#>   <dbl>    <chr>       <chr>    <chr>      <dbl>
-#> 1     1    Kabul         AFG    Kabol    1780000
-#> 2     2 Qandahar         AFG Qandahar     237500
-
-pool::poolClose(pool)
-```
-
-# Resources
-
-- All packages mentioned here are open-source and available on Github
-
-- `DBI`, `dplyr`, `odbc`, `pool` **AND** best practices, security, authentication, examples: https://db.rstudio.com/
-
-- `pool` (and general `shiny`): http://shiny.rstudio.com/articles/ (Databases section)
-
-<hr/>
-
-<!-- A lot of these things are very new and there is a commitment by many people and organizations to improve the DB ecosystem in R. The RStudio blog is one way to stay up to date with most of these changes. -->
-- https://blog.rstudio.org/ 
-
-- These slides + app source code: https://github.com/bborgesr/wsds2017
-
-<hr/>
-
-**Getting help**
-
-- https://community.rstudio.com/c/shiny
-- use the databases in this talk to try stuff out!
-
-# Shiny app
-
-lol
-
-# Shiny app: skeleton
-
-```{r, eval=FALSE} 
-library(shiny)
-library(shinydashboard)
-library(dplyr)
-library(pool)
-
-pool <- dbPool(RSQLite::SQLite(), dbname = "db.sqlite")
-
-tbls <- reactiveFileReader(500, NULL, "db.sqlite",
-  function(x) db_list_tables(pool)
-)
-
-# ui
-ui <- dashboardPage(...)
-
-# server
-server <- function(input, output, session) {...}
-
-shinyApp(ui, server)
-```
-
-# Shiny app: create table (adapted!)
-
-```{r, eval=FALSE} 
-# ui (snippet)
-actionButton("create", "Create table"),
-textInput("tableName", "Table name"),
-numericInput("ncols", "Number of columns"),
-uiOutput("cols")
-
-# server (snippet)
-output$cols <- renderUI({
-  input$tableName
-  cols <- vector("list", input$ncols)
-  for (i in seq_len(input$ncols)) {
-    textInput(paste0("colName", i), "Column name"),
-    selectInput(paste0("colType", i), "Column type", 
-      c(Integer = "INT", Character = "VARCHAR"))
-  }
-  cols
-})
-observeEvent(input$create, {
-  # finalCols is a list. E.g: list(ID = "INT", item = "VARCHAR", count = "INT")
-  db_create_table(pool, input$tableName, finalCols)
-})
-```
-
-# Shiny app: read table (adapted!)
-
-```{r, eval=FALSE} 
-# ui (snippet)
-selectInput("tableName", "Table name", NULL),
-checkboxGroupInput("select", "Choose columns to read"),
-selectInput("filter", "Choose column to filter on", NULL),
-checkboxGroupInput("vals", "Choose values to include"),
-tableOutput("res")
-
-# server (snippet)
-observeEvent(tbls(), {
-  updateSelectInput(session, "tableName", choices = tbls())
-})
-observe({
-  cols <- db_query_fields(pool, input$tableName)
-  updateCheckboxGroupInput(session, "select", choices = cols)
-})
-output$res <- renderTable({
-  pool %>% 
-    tbl(input$tableName) %>% 
-    select(input$select) %>% 
-    filter(input$filter %in% input$vals)
-})
-```
-
-# Shiny app: in action!
-
+Any questions?
