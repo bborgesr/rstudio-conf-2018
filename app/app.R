@@ -56,8 +56,7 @@ body <- dashboardBody(
         "period of time."),
       fluidRow(
         column(3, 
-          selectInput("studio_subcategory", "Choose 0+ subcategories", 
-            unique(dat$subcategory), multiple = TRUE)
+          selectInput("studio_subcategory", "Choose a subcategory", unique(dat$subcategory))
         ),
         column(2, 
           numericInput("studio_amount", "Choose an amount", 0)
@@ -65,16 +64,16 @@ body <- dashboardBody(
         column(2, 
           radioButtons("studio_amount_direction", "Amount qualifier", c("Over", "Under"))
         ),
-        column(3, 
-          selectInput("studio_function", "Choose a aggregate function", 
+        column(2, 
+          selectInput("studio_function", "Choose a function", 
             c("sum", "mean", "count", "min", "max"))
         ),
-        column(2, 
+        column(3, 
           colourInput("studio_box_color", "Choose a color", palette = "limited",
             allowedCols = c(
-              "red", "yellow", "aqua", "blue", "light-blue", "green", "navy", "teal", 
-              "olive", "lime", "orange", "fuchsia", "purple", "maroon", "black"
-            ), returnName = TRUE)
+              "#db4c3f", "#f19b2c", "#20c1ed", "#1074b5", "#408eba", "#17a55d", "#02203e", "#42cccb", 
+              "#419871", "#2afd77", "#fd852f", "#ed25bc", "#605ea6", "#d62161", "#111111"
+            ))
         )
       ),
       fluidRow(
@@ -254,6 +253,24 @@ server <- function(input, output, session) {
     else if (input$studio_function == "max") max
   })
   
+  studioBoxColor <- reactive({
+    if (input$studio_box_color == "#DB4C3F") "red"
+    else if (input$studio_box_color == "#F19B2C") "yellow"
+    else if (input$studio_box_color == "#20C1ED") "aqua"
+    else if (input$studio_box_color == "#1074B5") "blue"
+    else if (input$studio_box_color == "#408EBA") "light-blue"
+    else if (input$studio_box_color == "#17A55D") "green"
+    else if (input$studio_box_color == "#02203E") "navy"
+    else if (input$studio_box_color == "#42CCCB") "teal"
+    else if (input$studio_box_color == "#419871") "olive"
+    else if (input$studio_box_color == "#2AFD77") "lime"
+    else if (input$studio_box_color == "#FD852F") "orange"
+    else if (input$studio_box_color == "#ED25BC") "fuchsia"
+    else if (input$studio_box_color == "#605EA6") "purple"
+    else if (input$studio_box_color == "#D62161") "maroon"
+    else if (input$studio_box_color == "#111111") "black"
+  })
+  
   observeEvent(input$create_box, {
     divID <- gsub("\\.", "", format(Sys.time(), "%H%M%OS3"))
     divClass <- glue("user-dynamic-box")
@@ -262,14 +279,19 @@ server <- function(input, output, session) {
     sub_dat <- studioTabData()
     val <- prettyNum(sub_dat$total[1], big.mark = ",")
     
+    direction <- if (input$studio_amount_direction == "Over") ">" else "<"
+    
     insertUI(
       selector = "#placeholder",
       ui = div(id = divID, class = divClass,
-        actionButton(btnID, "X", class = "color_btn pull-right"),
-        valueBox(
-          value = glue("{val} €"), 
-          subtitle = glue("{input$studio_function} over {input$studio_subcategory}"), 
-          color = input$studio_box_color
+        column(4, 
+          actionButton(btnID, "X", class = "grey_btn pull-right"),
+          valueBox(width = NULL,
+            value = glue("{val} €"), 
+            subtitle = glue("{input$studio_function} over {input$studio_subcategory} ", 
+              "for {direction} {input$studio_amount} €"), 
+            color = studioBoxColor()
+          )
         )
       )
     )

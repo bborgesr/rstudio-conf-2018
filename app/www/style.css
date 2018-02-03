@@ -28,6 +28,19 @@ div.special div.bg-navy {
   color: white !important;
 }
 
+.grey_btn {
+  font-size: 18px;
+  background-color: #222d32 !important;
+  color: white;
+  z-index: 20;
+  position: relative;
+}
+
+.user-dynamic-box .small-box {
+  z-index: 10;
+  position: relative;
+}
+
 .content-wrapper {
   min-height: 825px !important;
 }
